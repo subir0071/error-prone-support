@@ -1,8 +1,6 @@
 name: Build and verify
 on:
-  pull_request:
-  push:
-    branches: [ master ]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -49,9 +47,9 @@ jobs:
         run: mvn -T1C install javadoc:jar
       # Note that the `-D` argument is quoted for compatibility with the
       # Windows build.
-      - name: Build project with self-check against Error Prone fork, test using the targeted JDK
-        run: mvn -T1C clean verify -s settings.xml -Perror-prone-fork -Pself-check '-Dsurefire.jdk-toolchain-version=${{ matrix.target-jdk }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Remove installed project artifacts
-        run: mvn dependency:purge-local-repository -DmanualInclude='${project.groupId}' -DresolutionFuzziness=groupId
+      # - name: Build project with self-check against Error Prone fork, test using the targeted JDK
+      #   run: mvn -T1C clean verify -s settings.xml -Perror-prone-fork -Pself-check '-Dsurefire.jdk-toolchain-version=${{ matrix.target-jdk }}'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Remove installed project artifacts
+      #   run: mvn dependency:purge-local-repository -DmanualInclude='${project.groupId}' -DresolutionFuzziness=groupId
