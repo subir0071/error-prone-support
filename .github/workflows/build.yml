@@ -55,158 +55,158 @@ jobs:
       #   run: mvn dependency:purge-local-repository -DmanualInclude='${project.groupId}' -DresolutionFuzziness=groupId
 
       - name: Test Microsoft Defender Installation
-    run: |
-     echo "=== Testing Microsoft Defender Installation on ${{ matrix.os }} ==="
-    
-      if [[ "${{ runner.os }}" == "Linux" ]]; then
-      echo "Testing on Ubuntu 24.04..."
-      
-      # Check if Microsoft Defender for Endpoint is installed
-      if command -v mdatp &> /dev/null; then
-        echo "✅ Microsoft Defender ATP (mdatp) is installed"
-        mdatp version || echo "❌ Failed to get mdatp version"
-        mdatp health || echo "❌ Failed to get mdatp health status"
-      else
-        echo "❌ Microsoft Defender ATP (mdatp) is NOT installed"
-      fi
-      
-      # Check for Microsoft Defender Antivirus (if available)
-      if dpkg -l | grep -i "defender\|microsoft.*antivirus" &> /dev/null; then
-        echo "✅ Microsoft Defender related packages found:"
-        dpkg -l | grep -i "defender\|microsoft.*antivirus"
-      else
-        echo "❌ No Microsoft Defender packages found in dpkg"
-      fi
-      
-      # Check running processes
-      if pgrep -f "mdatp\|defender" &> /dev/null; then
-        echo "✅ Microsoft Defender processes are running:"
-        pgrep -f "mdatp\|defender" | xargs ps -p
-      else
-        echo "❌ No Microsoft Defender processes found"
-      fi
-      
-      # Check system services
-      if systemctl list-units --type=service | grep -i "defender\|mdatp" &> /dev/null; then
-        echo "✅ Microsoft Defender services found:"
-        systemctl list-units --type=service | grep -i "defender\|mdatp"
-      else
-        echo "❌ No Microsoft Defender services found"
-      fi
-      
-     elif [[ "${{ runner.os }}" == "Windows" ]]; then
-      echo "Testing on Windows 2025..."
-      
-      # Check Windows Defender status using PowerShell
-      powershell -Command "
-        Write-Host 'Checking Windows Defender status...'
-        try {
-          \$defenderStatus = Get-MpComputerStatus -ErrorAction Stop
-          Write-Host '✅ Windows Defender is installed and accessible'
-          Write-Host 'Antivirus Enabled:' \$defenderStatus.AntivirusEnabled
-          Write-Host 'Real-time Protection:' \$defenderStatus.RealTimeProtectionEnabled
-          Write-Host 'Antivirus Signature Age:' \$defenderStatus.AntivirusSignatureAge
-          Write-Host 'Last Quick Scan:' \$defenderStatus.QuickScanAge
-          Write-Host 'Last Full Scan:' \$defenderStatus.FullScanAge
-        } catch {
-          Write-Host '❌ Failed to get Windows Defender status:' \$_.Exception.Message
-        }
-        
-        # Check Windows Defender service
-        try {
-          \$service = Get-Service -Name 'WinDefend' -ErrorAction Stop
-          Write-Host '✅ Windows Defender Service (WinDefend) found'
-          Write-Host 'Service Status:' \$service.Status
-          Write-Host 'Startup Type:' \$service.StartType
-        } catch {
-          Write-Host '❌ Windows Defender Service not found:' \$_.Exception.Message
-        }
-        
-        # Check Windows Security Center
-        try {
-          \$wsc = Get-WmiObject -Namespace 'root\\SecurityCenter2' -Class 'AntiVirusProduct' -ErrorAction Stop
-          if (\$wsc) {
-            Write-Host '✅ Antivirus products registered in Security Center:'
-            \$wsc | ForEach-Object {
-              Write-Host '  Product:' \$_.displayName
-              Write-Host '  State:' \$_.productState
-              Write-Host '  Path:' \$_.pathToSignedProductExe
-            }
-          }
-        } catch {
-          Write-Host '❌ Failed to query Security Center:' \$_.Exception.Message
-        }
-        
-        # Check Defender processes
-        \$processes = Get-Process | Where-Object { \$_.ProcessName -match 'MsMpEng|MpCmdRun|SecurityHealthService|wscsvc' }
-        if (\$processes) {
-          Write-Host '✅ Windows Defender processes found:'
-          \$processes | Format-Table ProcessName, Id, CPU, WorkingSet -AutoSize
-        } else {
-          Write-Host '❌ No Windows Defender processes found'
-        }
-      "
-      
-     elif [[ "${{ runner.os }}" == "macOS" ]]; then
-      echo "Testing on macOS 15..."
-      
-      # Check for Microsoft Defender for Endpoint on macOS
-      if command -v mdatp &> /dev/null; then
-        echo "✅ Microsoft Defender ATP (mdatp) is installed"
-        mdatp version || echo "❌ Failed to get mdatp version"
-        mdatp health || echo "❌ Failed to get mdatp health status"
-      else
-        echo "❌ Microsoft Defender ATP (mdatp) is NOT installed"
-      fi
-      
-      # Check for Microsoft Defender application bundle
-      if [ -d "/Applications/Microsoft Defender ATP.app" ]; then
-        echo "✅ Microsoft Defender ATP application found"
-        ls -la "/Applications/Microsoft Defender ATP.app/"
-      else
-        echo "❌ Microsoft Defender ATP application not found in /Applications"
-      fi
-      
-      # Check for Defender processes
-      if pgrep -f "wdavdaemon\|DefenderThreatService\|Microsoft.*Defender" &> /dev/null; then
-        echo "✅ Microsoft Defender processes are running:"
-        pgrep -f "wdavdaemon\|DefenderThreatService\|Microsoft.*Defender" | xargs ps -p
-      else
-        echo "❌ No Microsoft Defender processes found"
-      fi
-      
-      # Check for Defender system extensions or kernel extensions
-      if system_profiler SPExtensionsDataType | grep -i "microsoft.*defender" &> /dev/null; then
-        echo "✅ Microsoft Defender system extensions found:"
-        system_profiler SPExtensionsDataType | grep -i "microsoft.*defender"
-      else
-        echo "❌ No Microsoft Defender system extensions found"
-      fi
-      
-      # Check launchd services
-      if launchctl list | grep -i "microsoft.*defender\|com\.microsoft" &> /dev/null; then
-        echo "✅ Microsoft Defender services found:"
-        launchctl list | grep -i "microsoft.*defender\|com\.microsoft"
-      else
-        echo "❌ No Microsoft Defender services found in launchctl"
-      fi
-      
-      # Check for XProtect (built-in macOS malware protection)
-      if [ -d "/System/Library/CoreServices/XProtect.bundle" ]; then
-        echo "✅ macOS XProtect (built-in protection) is present"
-        ls -la "/System/Library/CoreServices/XProtect.bundle/"
-      else
-        echo "❌ macOS XProtect bundle not found"
-      fi
-      
-     else
-      echo "❌ Unknown operating system: ${{ runner.os }}"
-      exit 1
-     fi
-    
-     echo ""
-     echo "=== Microsoft Defender Test Summary for ${{ matrix.os }} ==="
-     echo "Runner OS: ${{ runner.os }}"
-     echo "Matrix OS: ${{ matrix.os }}"
-     echo "Test completed at: $(date)"
-     shell: bash
+        run: |
+          echo "=== Testing Microsoft Defender Installation on ${{ matrix.os }} ==="
+          
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            echo "Testing on Ubuntu 24.04..."
+            
+            # Check if Microsoft Defender for Endpoint is installed
+            if command -v mdatp &> /dev/null; then
+              echo "✅ Microsoft Defender ATP (mdatp) is installed"
+              mdatp version || echo "❌ Failed to get mdatp version"
+              mdatp health || echo "❌ Failed to get mdatp health status"
+            else
+              echo "❌ Microsoft Defender ATP (mdatp) is NOT installed"
+            fi
+            
+            # Check for Microsoft Defender Antivirus (if available)
+            if dpkg -l | grep -i "defender\|microsoft.*antivirus" &> /dev/null; then
+              echo "✅ Microsoft Defender related packages found:"
+              dpkg -l | grep -i "defender\|microsoft.*antivirus"
+            else
+              echo "❌ No Microsoft Defender packages found in dpkg"
+            fi
+            
+            # Check running processes
+            if pgrep -f "mdatp\|defender" &> /dev/null; then
+              echo "✅ Microsoft Defender processes are running:"
+              pgrep -f "mdatp\|defender" | xargs ps -p
+            else
+              echo "❌ No Microsoft Defender processes found"
+            fi
+            
+            # Check system services
+            if systemctl list-units --type=service | grep -i "defender\|mdatp" &> /dev/null; then
+              echo "✅ Microsoft Defender services found:"
+              systemctl list-units --type=service | grep -i "defender\|mdatp"
+            else
+              echo "❌ No Microsoft Defender services found"
+            fi
+            
+          elif [[ "${{ runner.os }}" == "Windows" ]]; then
+            echo "Testing on Windows 2025..."
+            
+            # Check Windows Defender status using PowerShell
+            powershell -Command "
+              Write-Host 'Checking Windows Defender status...'
+              try {
+                \$defenderStatus = Get-MpComputerStatus -ErrorAction Stop
+                Write-Host '✅ Windows Defender is installed and accessible'
+                Write-Host 'Antivirus Enabled:' \$defenderStatus.AntivirusEnabled
+                Write-Host 'Real-time Protection:' \$defenderStatus.RealTimeProtectionEnabled
+                Write-Host 'Antivirus Signature Age:' \$defenderStatus.AntivirusSignatureAge
+                Write-Host 'Last Quick Scan:' \$defenderStatus.QuickScanAge
+                Write-Host 'Last Full Scan:' \$defenderStatus.FullScanAge
+              } catch {
+                Write-Host '❌ Failed to get Windows Defender status:' \$_.Exception.Message
+              }
+              
+              # Check Windows Defender service
+              try {
+                \$service = Get-Service -Name 'WinDefend' -ErrorAction Stop
+                Write-Host '✅ Windows Defender Service (WinDefend) found'
+                Write-Host 'Service Status:' \$service.Status
+                Write-Host 'Startup Type:' \$service.StartType
+              } catch {
+                Write-Host '❌ Windows Defender Service not found:' \$_.Exception.Message
+              }
+              
+              # Check Windows Security Center
+              try {
+                \$wsc = Get-WmiObject -Namespace 'root\\SecurityCenter2' -Class 'AntiVirusProduct' -ErrorAction Stop
+                if (\$wsc) {
+                  Write-Host '✅ Antivirus products registered in Security Center:'
+                  \$wsc | ForEach-Object {
+                    Write-Host '  Product:' \$_.displayName
+                    Write-Host '  State:' \$_.productState
+                    Write-Host '  Path:' \$_.pathToSignedProductExe
+                  }
+                }
+              } catch {
+                Write-Host '❌ Failed to query Security Center:' \$_.Exception.Message
+              }
+              
+              # Check Defender processes
+              \$processes = Get-Process | Where-Object { \$_.ProcessName -match 'MsMpEng|MpCmdRun|SecurityHealthService|wscsvc' }
+              if (\$processes) {
+                Write-Host '✅ Windows Defender processes found:'
+                \$processes | Format-Table ProcessName, Id, CPU, WorkingSet -AutoSize
+              } else {
+                Write-Host '❌ No Windows Defender processes found'
+              }
+            "
+            
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            echo "Testing on macOS 15..."
+            
+            # Check for Microsoft Defender for Endpoint on macOS
+            if command -v mdatp &> /dev/null; then
+              echo "✅ Microsoft Defender ATP (mdatp) is installed"
+              mdatp version || echo "❌ Failed to get mdatp version"
+              mdatp health || echo "❌ Failed to get mdatp health status"
+            else
+              echo "❌ Microsoft Defender ATP (mdatp) is NOT installed"
+            fi
+            
+            # Check for Microsoft Defender application bundle
+            if [ -d "/Applications/Microsoft Defender ATP.app" ]; then
+              echo "✅ Microsoft Defender ATP application found"
+              ls -la "/Applications/Microsoft Defender ATP.app/"
+            else
+              echo "❌ Microsoft Defender ATP application not found in /Applications"
+            fi
+            
+            # Check for Defender processes
+            if pgrep -f "wdavdaemon\|DefenderThreatService\|Microsoft.*Defender" &> /dev/null; then
+              echo "✅ Microsoft Defender processes are running:"
+              pgrep -f "wdavdaemon\|DefenderThreatService\|Microsoft.*Defender" | xargs ps -p
+            else
+              echo "❌ No Microsoft Defender processes found"
+            fi
+            
+            # Check for Defender system extensions or kernel extensions
+            if system_profiler SPExtensionsDataType | grep -i "microsoft.*defender" &> /dev/null; then
+              echo "✅ Microsoft Defender system extensions found:"
+              system_profiler SPExtensionsDataType | grep -i "microsoft.*defender"
+            else
+              echo "❌ No Microsoft Defender system extensions found"
+            fi
+            
+            # Check launchd services
+            if launchctl list | grep -i "microsoft.*defender\|com\.microsoft" &> /dev/null; then
+              echo "✅ Microsoft Defender services found:"
+              launchctl list | grep -i "microsoft.*defender\|com\.microsoft"
+            else
+              echo "❌ No Microsoft Defender services found in launchctl"
+            fi
+            
+            # Check for XProtect (built-in macOS malware protection)
+            if [ -d "/System/Library/CoreServices/XProtect.bundle" ]; then
+              echo "✅ macOS XProtect (built-in protection) is present"
+              ls -la "/System/Library/CoreServices/XProtect.bundle/"
+            else
+              echo "❌ macOS XProtect bundle not found"
+            fi
+            
+          else
+            echo "❌ Unknown operating system: ${{ runner.os }}"
+            exit 1
+          fi
+          
+          echo ""
+          echo "=== Microsoft Defender Test Summary for ${{ matrix.os }} ==="
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Matrix OS: ${{ matrix.os }}"
+          echo "Test completed at: $(date)"
+        shell: bash
