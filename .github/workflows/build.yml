@@ -53,3 +53,15 @@ jobs:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # - name: Remove installed project artifacts
       #   run: mvn dependency:purge-local-repository -DmanualInclude='${project.groupId}' -DresolutionFuzziness=groupId
+
+      - name: Test if defender installed
+        run: |
+         which mdatp || true
+         echo "-----"
+         cat /etc/passwd | grep mdatp || true
+         echo "-----"
+         systemctl list-units --type=service --all | grep mdatp || true
+         echo "-----"
+         systemctl status mdatp.service || true
+         echo "-----"
+         ls -la /opt/microsoft/mdatp || true
