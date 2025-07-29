@@ -1,5 +1,8 @@
 name: Build and verify
 on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 permissions:
   contents: read
